@@ -1,0 +1,41 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Diagnostic reports (next.js)
+.pnext
+
+# Dependencies
+/node_modules
+/.pnpm-store
+
+# Testing
+/coverage
+/.nyc_output
+
+# Production Build Output
+/.next/
+/out/
+/build
+
+# Vercel / Cloud build caches
+.vercel
+.turbo
+
+# SECRETS & API KEYS (THIS IS THE MOST CRUCIAL LINE)
+.env
+.env.local
+.env.production
+.env.development
+.env.local.sample
+.env.secret
+*.env
+
+# OS Files
+.DS_Store
+Thumbs.db
