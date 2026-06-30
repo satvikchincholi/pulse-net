@@ -1,6 +1,7 @@
 # ---- deps ----
 FROM node:20-slim AS deps
 WORKDIR /app
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true 
 COPY package*.json ./
 RUN npm ci
 
