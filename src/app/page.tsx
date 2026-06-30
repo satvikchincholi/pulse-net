@@ -49,7 +49,6 @@ export default function LandingPage() {
             PulseNet
           </div>
           <nav className="flex items-center gap-4">
-            <Link href="/auth/login" className="hidden sm:block px-5 py-2.5 rounded-full text-sm font-semibold text-slate-600 dark:text-white/70 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-white/10 transition-colors">
             <Link href="/auth/login" className="px-5 py-2.5 rounded-full text-sm font-semibold text-slate-600 dark:text-white/70 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-white/10 transition-colors">
               Citizen Login
             </Link>
