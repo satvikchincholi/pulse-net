@@ -14,7 +14,7 @@ export default async function CommunityExplorer() {
 
   return (
     <section className="max-w-5xl mx-auto p-4 md:p-8 space-y-8 min-h-screen transition-colors duration-300">
-      <header className="flex items-center justify-between">
+      <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-3xl md:text-5xl font-manrope font-extrabold text-slate-900 dark:text-white tracking-tight">
           Community Hub
         </h1>
