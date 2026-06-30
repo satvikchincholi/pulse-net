@@ -1,5 +1,4 @@
-"use client";
-
+use client";
 import React from 'react';
 import Link from 'next/link';
 import { 
@@ -15,7 +14,6 @@ import {
   ArrowRight, 
   Focus 
 } from 'lucide-react';
-
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#020617] text-slate-900 dark:text-white relative overflow-hidden font-sans selection:bg-cyan-500/30 transition-colors duration-500">
@@ -26,7 +24,6 @@ export default function LandingPage() {
         <div className="absolute top-[20%] right-[-5%] w-[600px] h-[600px] bg-blue-300/20 dark:bg-blue-600/10 rounded-full mix-blend-multiply dark:mix-blend-screen blur-[100px] dark:blur-[120px] animate-[float_12s_ease-in-out_infinite_reverse]" />
         <div className="absolute bottom-[-10%] left-[20%] w-[700px] h-[700px] bg-emerald-300/20 dark:bg-emerald-500/10 rounded-full mix-blend-multiply dark:mix-blend-screen blur-[100px] dark:blur-[120px] animate-[float_15s_ease-in-out_infinite]" />
       </div>
-
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes float {
           0%, 100% { transform: translateY(0) scale(1); }
@@ -42,7 +39,6 @@ export default function LandingPage() {
           50% { transform: rotate(5deg) scale(1.15); }
         }
       `}} />
-
       {/* Main Container */}
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-12 lg:py-24">
         
@@ -54,6 +50,7 @@ export default function LandingPage() {
           </div>
           <nav className="flex items-center gap-4">
             <Link href="/auth/login" className="hidden sm:block px-5 py-2.5 rounded-full text-sm font-semibold text-slate-600 dark:text-white/70 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-white/10 transition-colors">
+            <Link href="/auth/login" className="px-5 py-2.5 rounded-full text-sm font-semibold text-slate-600 dark:text-white/70 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-white/10 transition-colors">
               Citizen Login
             </Link>
             <Link href="/auth/responder/login" className="px-6 py-2.5 rounded-full bg-slate-900 dark:bg-white text-white dark:text-black font-bold text-sm hover:bg-slate-800 dark:hover:bg-white/90 transition-colors shadow-lg dark:shadow-none">
@@ -61,7 +58,6 @@ export default function LandingPage() {
             </Link>
           </nav>
         </header>
-
         {/* Bento Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 auto-rows-[240px] gap-6">
           
@@ -82,7 +78,6 @@ export default function LandingPage() {
                 The decentralized civic layer. Fix your city. Earn merit.
               </p>
             </div>
-
             <div className="flex flex-col sm:flex-row items-end justify-between gap-6">
               <div>
                 <div className="font-mono font-bold uppercase tracking-widest text-[10px] text-slate-400 dark:text-white/50 mb-1">Help Coin Balance</div>
@@ -100,7 +95,6 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-
           {/* 2. AI AUDITOR CARD (col-1, row-2) */}
           <div className="group md:col-span-1 md:row-span-2 rounded-[2.5rem] bg-white/60 dark:bg-white/5 backdrop-blur-2xl border border-slate-200/50 dark:border-white/10 shadow-xl dark:shadow-[inset_0_0_80px_rgba(255,255,255,0.05)] p-8 flex flex-col transition-all duration-500 hover:-translate-y-1 hover:border-slate-300 dark:hover:border-white/30 relative overflow-hidden">
             <div className="flex items-center gap-3 mb-8">
@@ -109,7 +103,6 @@ export default function LandingPage() {
               </div>
               <h3 className="font-manrope font-extrabold tracking-tight text-sm text-slate-900 dark:text-white">Gemini Auditor</h3>
             </div>
-
             <div className="flex-1 flex flex-col justify-center items-center">
               {/* Scanner Visual */}
               <div className="relative w-full aspect-square max-w-[160px] mx-auto rounded-3xl bg-slate-200/50 dark:bg-black/40 border border-slate-300/50 dark:border-white/10 overflow-hidden mb-6 flex items-center justify-center">
@@ -181,7 +174,6 @@ export default function LandingPage() {
               </div>
               
               
-
               <div>
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white dark:bg-white/5 border border-slate-200/80 dark:border-white/10 text-slate-500 dark:text-white/60 font-mono font-bold uppercase tracking-widest text-[10px] mb-3 shadow-sm dark:shadow-none">
                   <Users size={12} /> r/Ward42Green
@@ -195,7 +187,6 @@ export default function LandingPage() {
               <ArrowRight size={20} />
             </button>
           </div>
-
           {/* 6. RESPONDER GIG MAP (col-2, row-1) */}
           <div className="group md:col-span-2 md:row-span-1 rounded-[2.5rem] bg-white/60 dark:bg-white/5 backdrop-blur-2xl border border-slate-200/50 dark:border-white/10 shadow-xl dark:shadow-[inset_0_0_80px_rgba(255,255,255,0.05)] p-8 flex items-center justify-between transition-all duration-500 hover:-translate-y-1 hover:border-slate-300 dark:hover:border-white/30 relative overflow-hidden">
             {/* Map Background */}
@@ -209,7 +200,6 @@ export default function LandingPage() {
               </div>
               <h3 className="font-manrope font-extrabold tracking-tight text-2xl mb-2 text-slate-900 dark:text-white">Active Responder Grid</h3>
             </div>
-
             {/* Pins */}
             <div className="relative z-10 w-48 h-full">
               <div className="absolute top-2 right-12 bg-slate-900 dark:bg-white text-white dark:text-black px-3 py-1.5 rounded-xl font-mono font-bold uppercase tracking-widest text-[10px] shadow-xl flex items-center gap-1 group-hover:-translate-y-2 transition-transform duration-500">
@@ -220,7 +210,6 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-
         </div>
       </main>
     </div>
