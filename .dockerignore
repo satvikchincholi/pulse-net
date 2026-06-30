@@ -8,3 +8,5 @@ temp
 *.md
 .env*
 npm-debug.log*
+Dockerfile
+.dockerignore
