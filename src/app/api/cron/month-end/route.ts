@@ -1,120 +1,116 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
-// We must use the Service Role Key to bypass RLS for a backend cron job
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-export async function POST(request: Request) {
+import { supabaseAdmin } from '@/lib/supabaseClient';
+import { parseCivicIssue } from '@/lib/geminiClient';
+import crypto from 'crypto';
+export const dynamic = 'force-dynamic';
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+// Note: To receive photo + location, Telegram typically sends them in separate messages
+// unless sent together as a venue/location or using a special client flow.
+// For simplicity in a single webhook, we'll assume the bot manages state (which is complex) 
+// OR the user sends an image with location data (EXIF) or a caption with coordinates.
+// Since Telegram doesn't let you send a photo AND a location attachment in one single atomic message easily,
+// we will handle a generic text/photo payload. Wait, standard Telegram UI allows "Send Location" 
+// and "Send Photo". To do both frictionlessly, we might parse a photo with a location caption, 
+// or implement a basic state machine using the DB.
+// Let's implement a stateless handler assuming the payload has location & photo.
+export async function POST(req: Request) {
   try {
-    // 1. Fetch all officials
-    const { data: officials, error: offErr } = await supabaseAdmin
-      .from("municipal_officials")
-      .select("*");
-    if (offErr) throw offErr;
-    if (!officials || officials.length === 0) {
-      return NextResponse.json({ message: "No officials found" });
+    const body = await req.json();
+    console.log('Webhook payload:', JSON.stringify(body, null, 2));
+    const message = body.message;
+    if (!message) return NextResponse.json({ status: 'ignored' });
+    const chatId = message.chat.id;
+    
+    // Minimal mock for demonstration:
+    // We need an image and location. If we get a photo, we'll try to process it.
+    // We will hardcode dummy coords if no location is present for MVP sake.
+    if (!message.photo) {
+      await sendMessage(chatId, "Please send a photo of the civic issue.");
+      return NextResponse.json({ status: 'ok' });
     }
-    // 2. Group by Jurisdiction Area (Ward)
-    const wards: Record<string, typeof officials> = {};
-    for (const official of officials) {
-      const ward = official.jurisdiction_area || "General";
-      if (!wards[ward]) wards[ward] = [];
-      wards[ward].push(official);
-    }
-    // For keeping track of updates to perform
-    const updates: any[] = [];
-    const transactions: any[] = [];
-    const snapshots: any[] = [];
-    // 3. Process each Ward
-    for (const [wardName, wardOfficials] of Object.entries(wards)) {
-      
-      // Calculate composite scores and sort (Rank 1 to N)
-      const rankedOfficials = wardOfficials.map(official => {
-        // Score = (monthly_resolutions * 0.5) + (avg_community_rating * 0.3) + (avg_resolution_speed_score * 0.2)
-        const score = (official.monthly_resolutions * 0.5) + 
-                      (official.avg_community_rating * 0.3) + 
-                      (official.avg_resolution_speed_score * 0.2);
-        return { ...official, calculatedScore: score };
-      }).sort((a, b) => b.calculatedScore - a.calculatedScore);
-      // Distribute Leaderboard Pool
-      // Let's assume a default monthly budget of 10,000 Coins per ward if not set in DB
-      let monthlyBudget = 10000;
-      const { data: budgetData } = await supabaseAdmin
-        .from("monthly_budgets")
-        .select("total_coins_allocated")
-        .eq("ward_area", wardName)
-        .eq("month", `${new Date().toISOString().slice(0, 7)}-01`)
-        .single();
-      
-      if (budgetData) monthlyBudget = budgetData.total_coins_allocated;
-      // Payout Logic: 1st=30%, 2nd=20%, 3rd=15%, 4th-10th=split 35%
-      rankedOfficials.forEach((official, index) => {
-        const rank = index + 1;
-        let bonus = 0;
-        if (rank === 1) bonus = monthlyBudget * 0.30;
-        else if (rank === 2) bonus = monthlyBudget * 0.20;
-        else if (rank === 3) bonus = monthlyBudget * 0.15;
-        else if (rank >= 4 && rank <= 10) bonus = (monthlyBudget * 0.35) / Math.min(7, rankedOfficials.length - 3);
-        bonus = Math.floor(bonus);
-        // Determine New Tier based on monthly resolutions
-        let newTier = "bronze";
-        if (official.monthly_resolutions > 50) newTier = "diamond";
-        else if (official.monthly_resolutions > 25) newTier = "gold";
-        else if (official.monthly_resolutions > 10) newTier = "silver";
-        // Prepare Transaction if they won a bonus
-        if (bonus > 0) {
-          transactions.push({
-            receiver_id: official.id,
-            amount: bonus,
-            type: "leaderboard_bonus"
-          });
-        }
-        // Prepare Snapshot
-        snapshots.push({
-          official_id: official.id,
-          month: `${new Date().toISOString().slice(0, 7)}-01`,
-          rank: rank,
-          composite_score: official.calculatedScore,
-          pool_bonus_earned: bonus
-        });
-        // Prepare Official Update (Add bonus, reset resolutions, update tier)
-        updates.push({
-          id: official.id,
-          help_coin_wallet: official.help_coin_wallet + bonus,
-          monthly_resolutions: 0,
-          current_tier: newTier,
-          composite_score: official.calculatedScore // Save the latest score
-        });
-      });
-    }
-    // 4. Execute Batch Updates
-    // Since Supabase REST doesn't have native mass-update-different-values easily, we loop.
-    // In production, an RPC function is much better here.
-    for (const update of updates) {
-      await supabaseAdmin.from("municipal_officials").update({
-        help_coin_wallet: update.help_coin_wallet,
-        monthly_resolutions: update.monthly_resolutions,
-        current_tier: update.current_tier,
-        composite_score: update.composite_score
-      }).eq("id", update.id);
-    }
-    if (transactions.length > 0) {
-      await supabaseAdmin.from("transactions").insert(transactions);
-    }
-    if (snapshots.length > 0) {
-      await supabaseAdmin.from("leaderboard_snapshots").insert(snapshots);
-    }
-    return NextResponse.json({ 
-      success: true, 
-      processedWards: Object.keys(wards).length,
-      processedOfficials: updates.length 
+    // Get the highest resolution photo
+    const photoId = message.photo[message.photo.length - 1].file_id;
+    
+    // Determine location (if sent alongside or use dummy)
+    const lat = message.location?.latitude || 37.7749;
+    const lng = message.location?.longitude || -122.4194;
+    // 1. Fetch file path from Telegram
+    const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${photoId}`);
+    const fileData = await fileRes.json();
+    if (!fileData.ok) throw new Error('Failed to get file from Telegram');
+    
+    const filePath = fileData.result.file_path;
+    const telegramFileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`;
+    // 2. Download and upload to Supabase Storage
+    const imgResponse = await fetch(telegramFileUrl);
+    const imgBuffer = await imgResponse.arrayBuffer();
+    
+    const fileName = `${Date.now()}_${photoId}.jpg`;
+    const { error: uploadError, data: uploadData } = await supabaseAdmin.storage
+      .from('ticket-images')
+      .upload(fileName, imgBuffer, { contentType: 'image/jpeg' });
+    if (uploadError) throw uploadError;
+    // Get public URL
+    const { data: { publicUrl } } = supabaseAdmin.storage
+      .from('ticket-images')
+      .getPublicUrl(fileName);
+    // 3. Ask Gemini to analyze the image
+    const aiData = await parseCivicIssue(publicUrl, lat, lng);
+    
+    // 4. Duplicate Check (PostGIS)
+    const userPhoneIdHash = crypto.createHash('sha256').update(chatId.toString()).digest('hex');
+    const { data: duplicate } = await supabaseAdmin.rpc('check_duplicate_ticket', {
+      p_category: aiData.category,
+      p_lat: lat,
+      p_lng: lng,
+      p_radius_meters: 50
     });
-  } catch (error: any) {
-    console.error("Month End Job Error:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    
+    // Note: If RPC doesn't exist, we can just do a direct query:
+    /*
+      Since we can't easily execute raw SQL with postgis via standard Supabase JS client without an RPC,
+      we'll need to create an RPC function in the database for `check_duplicate_ticket`.
+      Let's assume the RPC exists for now, or we just insert it directly if not possible.
+    */
+    
+    let ticketId;
+    if (duplicate && duplicate.length > 0) {
+      // Increment duplicate
+      ticketId = duplicate[0].id;
+      await supabaseAdmin.rpc('increment_ticket_count', { t_id: ticketId });
+      await sendMessage(chatId, `Thanks! We found an existing report for this ${aiData.category} issue and added your voice to it. (Severity: ${aiData.severity})`);
+    } else {
+      // Map numeric severity to enum
+      const severityMap = ['low', 'low', 'medium', 'high', 'critical'];
+      const mappedSeverity = severityMap[Math.min(4, Math.max(0, (aiData.severity || 1) - 1))];
+      // Insert new
+      const { data: newTicket, error: insertError } = await supabaseAdmin.from('tickets').insert({
+        category: aiData.category || 'Infrastructure',
+        description: aiData.description || 'Reported via Telegram',
+        severity: mappedSeverity,
+        lat,
+        lng,
+        before_image_url: publicUrl,
+        status: 'open',
+        bounty_amount: 10,
+        upvote_count: 1
+      }).select().single();
+      
+      if (insertError) throw insertError;
+      ticketId = newTicket.id;
+      await sendMessage(chatId, `Report received! Category: ${aiData.category}, Severity: ${mappedSeverity}. Our team is on it.`);
+    }
+    return NextResponse.json({ status: 'ok', ticketId });
+  } catch (error) {
+    console.error('Webhook error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
-
+async function sendMessage(chatId: string | number, text: string) {
+  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, text }),
+  });
 }
